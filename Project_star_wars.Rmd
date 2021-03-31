@@ -1,0 +1,237 @@
+---
+title: "Projet Gestion & Analyse de données massives"
+author: "Maillot Roberto, AMMOR Ismail,FENIOU Dimitri"
+date: "enseigné par Frédéric BLANCHARD & Joris FALIP // 2019"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+<div style="text-align: justify">
+```{r setup, include=FALSE}
+# ne touchez pas a ce bloc sinon je bouge
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+personnages <- starwars[,c(2,3,11)]
+personnages <- na.omit(personnages)
+# vraiment, pas touche
+```
+
+## Modalités d'évaluation
+Comme au semestre précédent, le but de ce projet est de vous permettre d'exercer tout ce que vous avez appris lors de ce module. Fournissez des réponses détaillées permettant d'apprécier à leur juste valeur vos compétences, n'hésitez donc pas à prendre l'initiative et étoffer chaque question d'explications sur votre démarche, sur les choix que vous avez opéré, et à inclure éventuellement d'autres analyses supplémentaires qui vous semblent compléter judicieusement la réponse.
+
+#### Consignes
+Pour chaque question, la réponse doit comporter à la fois du code réalisant ce qui est attendu, mais aussi une explication textuelle de la logique derrière votre réponse.
+
+* Le code doit figurer dans les blocs de code pour chaque question.
+* Les réponses textuelles doivent figurer sous le bloc de code de la question.
+* En cliquant sur _knit_, tout le code du fichier doit s'executer sans erreur.
+* Ne mélangez pas visualiser/afficher et affecter.
+* Ecrivez un ode lisibile, avec des espaces, des noms de variables appropriés et clairs, etc...
+* Aucun autre format que RMardown (ce document) ne sera accepté.
+
+#### Date et méthode de rendu
+A cause des délais de saisie des notes, le projet doit **impérativement** être envoyé par email à [joris.falip@univ-reims.fr](mailto:joris.falip@univ-reims.fr) le dimanche 5 mai **au plus tard**. Le seul document à envoyer est ce fichier là, que vous prendrez le soin de renommer **nom1-nom2.Rmd**. Vous remplacerez aussi "AUTHORS NAMES" dans l'entête de ce fichier par vos noms.
+
+## Sujet
+
+### Pré-requis
+
+Afin de pouvoir réaliser ce projet, quelques packages sont nécessaires : _dplyr_, _ggplot2_, _prettydoc_, _class_, _jsonlite_, _rvest_, _rpart_ et _rpart.plot_. Pensez donc à les installer s'ils ne sont pas déjà installés sur votre machine, et à les charger quand vous en aurez besoin.
+```{r include=FALSE} 
+# Chargement des library
+
+library(prettydoc)
+library(dplyr)
+library(ggplot2)
+library(class)
+library(jsonlite)
+library(rvest)
+library(rpart)
+library(rpart.plot)
+
+```
+### Star Wars API
+
+[https://swapi.dev/api/](https://swapi.dev/api/) est un site proposant une API qui recense des données sur l'univers de Star Wars. N'oubliez pas d'aller consulter la documentation disponible sur le site pour en comprendre l'utilisation.
+
+##### Question 1
+
+Récupérez, via une requête auprès de l'API du site, les informations sur le premier film. Accédez à sa date de sortie (_release date_).
+
+```{r question1}
+# Récupération de l'url   
+url <- 'https://swapi.dev/api/films/1/'
+webpage <- fromJSON(url)
+
+# Récupération des informations dont on a besoin
+webpage$release_date
+webpage$title
+webpage$episode_id
+webpage$producer
+webpage$director
+webpage$planets
+
+
+ 
+```
+<p style="text-align:justify";># On a chargé les 2 packages pour accéder aux données du site, on a donné un nom à l'url puis on a appliqué le jsonlite sur le site et enfin on a importer le titre, la date de publication, les planets et les informations sur le film.
+ </p>
+##### Question 2
+
+Créez une fonction qui, à partir de l'URL [https://swapi.dev/api/](https://swapi.dev/api/) d'un film, affiche le climat de toutes les planètes de ce film.
+```{r question2}
+
+
+climatePlanete <- function(url){
+  webpage <-fromJSON(url)
+  nbPlanete <- webpage$planets
+  for (nu in nbPlanete){
+    webpage <- fromJSON(nu)
+    print(webpage$climate)
+  }
+}
+climatePlanete("https://swapi.dev/api/films/1/")
+
+
+```
+<p style="text-align:justify";> Nous avons commencé par créer la fonction nommée climatePlanete qui prend en argument l'url d'un film, on a ensuite récuperer grâce à une requete vers l'api l'url des planetes du film et grâce à une boucle nous parcourons chacun des urls pour y afficher les climats de chaque planetes
+ </p>
+### Sens Critique
+
+[www.senscritique.com](www.senscritique.com) ne propose pas d'API pour accéder directement aux données, il va donc falloir récupérer autrement les informations du site.
+
+##### Question 3
+
+Récupérez, sur ce site, la note obtenue par le premier film de la saga Star Wars. Le node à utiliser est **.pvi-scrating-value**.
+
+```{r question3}
+library(rvest)
+# Récupération de l'url 
+sensCritique_url <- 'https://www.senscritique.com/film/La_Guerre_des_Etoiles/365132' 
+webpage <- read_html(sensCritique_url)
+
+#Selection du Node
+rating_html <- html_nodes(webpage,'.pvi-scrating-value') 
+rating_movie <- html_text(rating_html)
+
+#Affichage du rating
+print(rating_movie)
+
+
+```
+<p style="text-align:justify";> le site SensCritique ne proposant pas d'API nous nous sommes servis de la library rvest pour accéder au Node **'pvi-scrating-value'**et extraire le rating du premier film de la saga. </p>
+
+##### Question 4
+
+Récupérez maintenant le nombre de critiques, de coups de coeur et de personnes ayant mis le film dans leur liste d'envies. Allez chercher dans le code source de la page, le même node vous donnera ces trois informations d'un coup. Pensez à écrire le nom du node correctement : par exemple pour récupérer le titre d'un film il s'agit de **d-heading2-opt** dans le code de la page, mais il faut écrire **.d-heading2-opt** dans R pour récupérer ce node.
+
+```{r question4}
+library("rvest")
+
+#Recupération du Node '.d-heading2-opt'
+
+sensCritique_url2 <-"https://www.senscritique.com/film/La_Guerre_des_Etoiles/365132"
+webpage <- read_html(sensCritique_url2)
+critiques <- html_nodes(webpage,'.d-heading2-opt')
+
+#Transformation des critique en str et affichage
+nomCrtitique <- html_text(critiques)
+print(nomCrtitique[4])
+
+#Transformation des coups de coeur en str et affichage
+coeur <- html_nodes(webpage,'.pvi-stats-number')
+nbcoeur <- html_text(coeur)
+print(nbcoeur)
+
+```
+
+### Analyses
+
+Pour ces questions, vous devrez utiliser un jeu de données déjà fourni au début de ce document et portant le nom **personnages**. Ce jeu de données contient le poids, la taille, et l'espèce de cinquante huit personnages de la saga.
+
+##### Question 5
+
+A l'aide de notre fidèle package _ggplot2_, créez un nuage de point visualisant les poids et tailles de chaque personnage. Vous étudierez ensuite à l'aide d'un historgramme la répartition des poids de ces personnages : notez-vous quelque chose de particulier ? Chacun de vos deux graphes devra être joli : légende, titre, descriptions des axes. Vous utilisez aussi la colonne _species_ du dataframe pour colorer les deux graphes.
+
+```{r question5}
+# Chargement des packages
+library('ggplot2')
+
+# Récuparation des infomations sur les personnages de star wars que le prof a gentiment donné
+
+personnages <- starwars[,c(2,3,11)]
+personnages <- na.omit(personnages)
+
+# Création du graphique scater plot
+
+qplot(height,mass, data = personnages, geom = "point",
+      main = 'Analyse des personnages Star Wars en fonction de la taille et du poids',
+      xlab = 'Taille',ylab = 'Poids',
+      color = species,)
+
+# Création du diagramme en barre
+
+qplot(mass, data=personnages, geom="histogram",
+      main = 'Analyse des personnages Star Wars en fonction de leur taille et poids',
+      xlab = 'Poids',
+      color = species,)
+```
+
+<p style="text-align:justify";> On peut voir qu'un personnage ce démarque par son poid : c'est jabba the hutt ! </p>
+
+<img src="https://media.giphy.com/media/3oeSAK2k0zDaQCbqJG/giphy.gif" width="700" height="300" />
+
+
+##### Question 6
+
+Créez et affichez un arbre de décision pour déterminer l'espèce d'un personnage à partir du poids et de la taille.
+
+```{r question6}
+#Création de l'arbre de decision
+arbre.classif<-rpart(species ~ mass + height ,personnages)
+rpart.plot(arbre.classif)
+```
+
+##### Question 7
+
+Utilisez l'algorithme de clustering de sk-moyennes pour regrouper les personnages en plusieurs groupes selon leur taille et poids. Le nombre de groupes est laissé à votre appréciation.
+
+```{r question7}
+# On garde seulement les valeurs poids et taille pour les analyser
+stars1 <- (personnages[,1:2])
+km <- kmeans(stars1, 3)
+class(personnages)
+
+# Création d'un diagramme de dispersion pour visualiser les groupes
+palette <- c("red", "green", "blue")
+couleurs <- palette[km$cluster]
+plot(stars1, pch =21, bg= couleurs)
+
+```
+
+##### Question 8
+
+Transformez le dataframe **personnages** en une matrice que vous nommerez **matpersonnages**. Ajoutez ensuite l'individu suivant (_height_ = 231, _mass_ = 122) à la matrice en lui rajoutant une 59ème ligne. Prédisez son espèce grace aux k-NN, en utilisant les autres données et en vous basant sur les 3 plus proches voisins.
+
+```{r question8}
+# Chargement des donn�es 
+library(class)
+# On transforme notre DataFrame personnage en matrice
+matpersonnages <- as.matrix(personnages)
+# On cr�e un 
+new_perso <- c(231,122,NA)
+# On ajoute notre individu � notre matrice 
+matpersonnages <- rbind(matpersonnages,new_perso)
+# On test notre nouvelle individu pour conna�tre son esp�ce en fonction de ces 3 plus proche voisin
+spec_new_perso <- knn(train = matpersonnages[1:58,1:2],
+                      test = matpersonnages[59,1:2],
+                      cl = matpersonnages[1:58,3],
+                      k = 3)
+print(spec_new_perso)
+```
+<p style="text-align:justify";>Notre nouvelle individu est un Wookie.</p>
+</div>
+
+<img src ="https://media.giphy.com/media/69pKX6fv2QgTe/giphy.gif"
+width="700" height="300" />
